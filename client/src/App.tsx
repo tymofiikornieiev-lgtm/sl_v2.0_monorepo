@@ -1234,6 +1234,7 @@ function DealerPricesPage({
   const loadDealers = async () => {
     try {
       setDealers(await http<Dealer[]>("/dealers"));
+      onSuccess("Dealers loaded");
     } catch (err) {
       onError((err as Error).message);
     }
