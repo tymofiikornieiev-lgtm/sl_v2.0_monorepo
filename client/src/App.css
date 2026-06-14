@@ -1,0 +1,302 @@
+.app-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 14px;
+}
+
+.topbar {
+  background: linear-gradient(120deg, #11343f, #124f52, #206265);
+  color: #fbfff8;
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 12px 24px rgba(19, 42, 45, 0.22);
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  text-transform: capitalize;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.role-admin {
+  background: #f7c448;
+  color: #282003;
+}
+
+.role-manager {
+  background: #9ce6d9;
+  color: #07352e;
+}
+
+.role-viewer {
+  background: #bad2ff;
+  color: #0f2851;
+}
+
+.tabbar {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tab {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 12px;
+  padding: 10px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.tab.active {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: #e9f9f5;
+}
+
+.notice,
+.error {
+  margin: 10px 0 0;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.notice {
+  background: #dff6ef;
+  color: #0b5448;
+}
+
+.error {
+  background: #fde6ea;
+  color: #6b1e30;
+}
+
+.page-content {
+  margin-top: 10px;
+  padding-bottom: 22px;
+}
+
+.panel-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 10px 16px rgba(35, 29, 19, 0.08);
+}
+
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 0;
+  font-size: 13px;
+}
+
+.inline-form,
+.form-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mobile-grid {
+  grid-template-columns: 1fr;
+}
+
+.list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.row-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.row-card.stacked {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn,
+input,
+select,
+label {
+  font: inherit;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+input,
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  padding: 10px;
+}
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #fff;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+
+.btn:disabled {
+  opacity: 0.7;
+}
+
+.btn-ghost {
+  background: #dae8e8;
+  color: #083f45;
+}
+
+.btn-danger {
+  background: var(--danger);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 24, 29, 0.48);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 12px;
+}
+
+.modal-card {
+  width: min(860px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 16px;
+  padding: 14px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 28px rgba(30, 20, 7, 0.12);
+}
+
+.modal-card h3 {
+  margin: 0 0 8px;
+}
+
+.auth-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.auth-card {
+  width: min(560px, 100%);
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 18px;
+  box-shadow: 0 14px 28px rgba(30, 20, 7, 0.12);
+}
+
+.auth-card h1 {
+  margin: 4px 0;
+  font-size: 24px;
+}
+
+.switch-row {
+  margin-top: 10px;
+  background: #ece4d6;
+  border-radius: 10px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.switch {
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.switch.active {
+  background: #fff;
+  color: #16464d;
+}
+
+@media (min-width: 860px) {
+  .app-shell {
+    padding: 22px;
+  }
+
+  .tabbar {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .panel-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mobile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
