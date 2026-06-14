@@ -41,6 +41,8 @@ console.log('ENV-APP', ENV);
         username: config.get<string>('database.username'),
         password: config.get<string>('database.password'),
         database: config.get<string>('database.name'),
+        ssl:
+          process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 
         synchronize: config.get<boolean>('database.synchronize'),
         autoLoadEntities: config.get<boolean>('database.autoLoadEntities'),
