@@ -75,8 +75,9 @@ type TabKey =
   | "dealer-prices"
   | "prices";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE?.trim() || "http://localhost:3003/api";
+const API_BASE = import.meta.env.VITE_API_BASE?.trim();
+// import.meta.env.VITE_API_BASE?.trim() || "http://localhost:3003/api";
+
 console.log("API_BASE", API_BASE);
 const STORAGE_KEY = "sl-auth";
 
