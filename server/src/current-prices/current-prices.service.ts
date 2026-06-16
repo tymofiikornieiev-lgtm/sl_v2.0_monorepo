@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import CurrentPrice from './entity/current-price.entity';
 import { Repository } from 'typeorm';
@@ -8,6 +13,8 @@ import { SearchCurrentPriceDto } from './dto/search-current-price.dto';
 
 @Injectable()
 export class CurrentPricesService {
+  private readonly logger = new Logger(CurrentPricesService.name);
+
   constructor(
     @InjectRepository(CurrentPrice)
     private readonly currentPriceRepository: Repository<CurrentPrice>,
@@ -74,47 +81,78 @@ export class CurrentPricesService {
   }
 
   public async findFilterOptions() {
-    const currentYear = new Date().getFullYear();
+    try {
+      const currentYear = new Date().getFullYear();
 
-    const rows = await this.currentPriceRepository
-      .createQueryBuilder('currentPrice')
-      .innerJoin('currentPrice.vehicleConfiguration', 'vehicleConfiguration')
-      .innerJoin('vehicleConfiguration.make', 'make')
-      .innerJoin('vehicleConfiguration.model', 'model')
-      .innerJoin('vehicleConfiguration.ignitionType', 'ignitionType')
-      .innerJoin('vehicleConfiguration.keyType', 'keyType')
-      .select('DISTINCT vehicleConfiguration.year', 'year')
-      .addSelect('make.name', 'make')
-      .addSelect('model.name', 'model')
-      .addSelect('keyType.name', 'typeOfKey')
-      .addSelect('ignitionType.name', 'typeOfIgnition')
-      .where('vehicleConfiguration.year <= :currentYear', { currentYear })
-      .orderBy('vehicleConfiguration.year', 'DESC')
-      .addOrderBy('make.name', 'ASC')
-      .addOrderBy('model.name', 'ASC')
-      .addOrderBy('keyType.name', 'ASC')
-      .addOrderBy('ignitionType.name', 'ASC')
-      .getRawMany<{
-        year: string;
-        make: string;
-        model: string;
-        typeOfKey: string;
-        typeOfIgnition: string;
-      }>();
+      const rows = await this.currentPriceRepository.query(
+        `
+          SELECT DISTINCT
+            vc.year::int AS year,
+            mk.name AS make,
+            md.name AS model,
+            kt.name AS "typeOfKey",
+            it.name AS "typeOfIgnition"
+          FROM current_prices cp
+          JOIN vehicle_configurations vc
+            ON vc.id = cp.vehicle_configuration_id
+          JOIN makes mk
+            const currentYear = new Date().getFullYear();
+            const rows = await this.currentPriceRepository.find({
+              relations: {
+                vehicleConfiguration: {
+                  make: true,
+                  model: true,
+                  keyType: true,
+                  ignitionType: true,
+                },
+              },
+            });
 
-    return rows.map((row) => ({
-      ...row,
-      year: Number(row.year),
-    }));
-  }
+            const seen = new Set<string>();
+            const options: Array<{
+              year: number;
+              make: string;
+              model: string;
+              typeOfKey: string;
+              typeOfIgnition: string;
+            }> = [];
 
-  public async findOne(id: number) {
-    const currentPrice = await this.currentPriceRepository.findOne({
-      where: { id },
-      relations: {
-        vehicleConfiguration: true,
-        dealer: true,
-        createdByUser: true,
+            for (const row of rows) {
+              const vc = row.vehicleConfiguration;
+
+              if (!vc?.make?.name || !vc?.model?.name || !vc?.keyType?.name || !vc?.ignitionType?.name) {
+                continue;
+              }
+
+              const year = Number(vc.year);
+              if (!Number.isFinite(year) || year > currentYear) {
+                continue;
+              }
+
+              const key = `${year}|${vc.make.name}|${vc.model.name}|${vc.keyType.name}|${vc.ignitionType.name}`;
+              if (seen.has(key)) {
+                continue;
+              }
+
+              seen.add(key);
+              options.push({
+                year,
+                make: vc.make.name,
+                model: vc.model.name,
+                typeOfKey: vc.keyType.name,
+                typeOfIgnition: vc.ignitionType.name,
+              });
+            }
+
+            options.sort((a, b) => {
+              if (a.year !== b.year) return b.year - a.year;
+              if (a.make !== b.make) return a.make.localeCompare(b.make);
+              if (a.model !== b.model) return a.model.localeCompare(b.model);
+              if (a.typeOfKey !== b.typeOfKey) return a.typeOfKey.localeCompare(b.typeOfKey);
+              return a.typeOfIgnition.localeCompare(b.typeOfIgnition);
+            });
+
+            return options;
         updatedByUser: true,
       },
     });

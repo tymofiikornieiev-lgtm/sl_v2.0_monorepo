@@ -1452,7 +1452,7 @@ function SearchKeysPage({
   const loadSelectors = async () => {
     try {
       const [
-        searchMatrixData,
+        searchMatrixResult,
         vcData,
         makesData,
         modelsData,
@@ -1468,7 +1468,7 @@ function SearchKeysPage({
             typeOfKey: string;
             typeOfIgnition: string;
           }>
-        >("/current-prices/filter-options"),
+        >("/current-prices/filter-options").catch(() => []),
         http<VehicleConfiguration[]>("/vehicle-configurations"),
         http<Make[]>("/makes"),
         http<Model[]>("/models"),
@@ -1477,7 +1477,7 @@ function SearchKeysPage({
         http<Dealer[]>("/dealers"),
       ]);
 
-      setSearchMatrix(searchMatrixData);
+      setSearchMatrix(searchMatrixResult);
       setVehicleConfigurations(vcData);
       setMakes(makesData);
       setModels(modelsData);
@@ -1534,9 +1534,9 @@ function SearchKeysPage({
     void loadSelectors();
   }, []);
 
-  const selectorVehicleConfigurations = useMemo(
-    () =>
-      searchMatrix.map((item, index) => ({
+  const selectorVehicleConfigurations = useMemo(() => {
+    if (searchMatrix.length > 0) {
+      return searchMatrix.map((item, index) => ({
         id: -index - 1,
         year: item.year,
         makeId: 0,
@@ -1548,9 +1548,13 @@ function SearchKeysPage({
         model: { id: 0, name: item.model, makeId: 0 },
         keyType: { id: 0, name: item.typeOfKey },
         ignitionType: { id: 0, name: item.typeOfIgnition },
-      })),
-    [searchMatrix],
-  );
+      }));
+    }
+
+    return vehicleConfigurations.filter((vc): vc is VehicleConfiguration =>
+      Boolean(vc?.make && vc?.model && vc?.keyType && vc?.ignitionType),
+    );
+  }, [searchMatrix, vehicleConfigurations]);
 
   const availableYears = useMemo(() => {
     const years = selectorVehicleConfigurations
