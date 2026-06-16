@@ -75,7 +75,8 @@ type TabKey =
   | "dealer-prices"
   | "prices";
 
-const API_BASE = import.meta.env.VITE_API_BASE?.trim();
+const API_BASE =
+  import.meta.env.VITE_API_BASE?.trim() || "http://localhost:3003/api";
 console.log("API_BASE", API_BASE);
 const STORAGE_KEY = "sl-auth";
 
@@ -1360,9 +1361,6 @@ function SearchKeysPage({
   onSuccess: (v: string) => void;
 }) {
   const [prices, setPrices] = useState<CurrentPrice[]>([]);
-  const [allPricesForSelectors, setAllPricesForSelectors] = useState<
-    CurrentPrice[]
-  >([]);
   const [vehicleConfigurations, setVehicleConfigurations] = useState<
     VehicleConfiguration[]
   >([]);
@@ -1371,6 +1369,7 @@ function SearchKeysPage({
   const [keyTypes, setKeyTypes] = useState<KeyType[]>([]);
   const [ignitionTypes, setIgnitionTypes] = useState<IgnitionType[]>([]);
   const [dealers, setDealers] = useState<Dealer[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   type PriceForm = {
     id?: number;
@@ -1437,8 +1436,38 @@ function SearchKeysPage({
     typeOfKey: "",
     typeOfIgnition: "",
   });
+  const currentYear = new Date().getFullYear();
 
-  const load = async (
+  const loadSelectors = async () => {
+    try {
+      const [
+        vcData,
+        makesData,
+        modelsData,
+        keyTypesData,
+        ignitionData,
+        dealersData,
+      ] = await Promise.all([
+        http<VehicleConfiguration[]>("/vehicle-configurations"),
+        http<Make[]>("/makes"),
+        http<Model[]>("/models"),
+        http<KeyType[]>("/key-types"),
+        http<IgnitionType[]>("/ignition-types"),
+        http<Dealer[]>("/dealers"),
+      ]);
+
+      setVehicleConfigurations(vcData);
+      setMakes(makesData);
+      setModels(modelsData);
+      setKeyTypes(keyTypesData);
+      setIgnitionTypes(ignitionData);
+      setDealers(dealersData);
+    } catch (err) {
+      onError((err as Error).message);
+    }
+  };
+
+  const loadPrices = async (
     filters: {
       year?: string;
       make?: string;
@@ -1470,59 +1499,31 @@ function SearchKeysPage({
         Boolean(value?.trim()),
       );
       const filteredPath = `/current-prices${searchQuery.toString() ? `?${searchQuery}` : ""}`;
-      const filteredPricesPromise = http<CurrentPrice[]>(filteredPath);
-      const allPricesPromise = hasFilters
-        ? http<CurrentPrice[]>("/current-prices")
-        : filteredPricesPromise;
+      const pricesData = await http<CurrentPrice[]>(filteredPath);
 
-      const [
-        pricesData,
-        allPricesData,
-        vcData,
-        makesData,
-        modelsData,
-        keyTypesData,
-        ignitionData,
-        dealersData,
-      ] = await Promise.all([
-        filteredPricesPromise,
-        allPricesPromise,
-        http<VehicleConfiguration[]>("/vehicle-configurations"),
-        http<Make[]>("/makes"),
-        http<Model[]>("/models"),
-        http<KeyType[]>("/key-types"),
-        http<IgnitionType[]>("/ignition-types"),
-        http<Dealer[]>("/dealers"),
-      ]);
       setPrices(pricesData);
-      setAllPricesForSelectors(allPricesData);
-      setVehicleConfigurations(vcData);
-      setMakes(makesData);
-      setModels(modelsData);
-      setKeyTypes(keyTypesData);
-      setIgnitionTypes(ignitionData);
-      setDealers(dealersData);
+      setHasSearched(true);
     } catch (err) {
       onError((err as Error).message);
     }
   };
 
   useEffect(() => {
-    void load();
+    void loadSelectors();
   }, []);
 
   const selectorVehicleConfigurations = useMemo(
     () =>
-      allPricesForSelectors
-        .map((price) => price.vehicleConfiguration)
-        .filter((vc): vc is NonNullable<CurrentPrice["vehicleConfiguration"]> =>
+      vehicleConfigurations.filter(
+        (vc): vc is NonNullable<CurrentPrice["vehicleConfiguration"]> =>
           Boolean(vc),
-        ),
-    [allPricesForSelectors],
+      ),
+    [vehicleConfigurations],
   );
 
   const availableYears = useMemo(() => {
     const years = selectorVehicleConfigurations
+      .filter((vc) => vc.year <= currentYear)
       .filter((vc) => {
         if (searchFilters.make && vc.make?.name !== searchFilters.make) {
           return false;
@@ -1549,6 +1550,7 @@ function SearchKeysPage({
     return Array.from(new Set(years)).sort((a, b) => b - a);
   }, [
     selectorVehicleConfigurations,
+    currentYear,
     searchFilters.make,
     searchFilters.model,
     searchFilters.typeOfKey,
@@ -1844,7 +1846,10 @@ function SearchKeysPage({
       }
 
       onSuccess("Dictionary updated");
-      await load(searchFilters);
+      await loadSelectors();
+      if (hasSearched) {
+        await loadPrices(searchFilters);
+      }
     } catch (err) {
       onError((err as Error).message);
     }
@@ -1948,7 +1953,10 @@ function SearchKeysPage({
 
       setEditorOpen(false);
       setForm(blankForm);
-      await load(searchFilters);
+      await loadSelectors();
+      if (hasSearched) {
+        await loadPrices(searchFilters);
+      }
     } catch (err) {
       onError((err as Error).message);
     }
@@ -1960,7 +1968,10 @@ function SearchKeysPage({
       await http(`/current-prices/${deleting.id}`, { method: "DELETE" });
       setDeleting(null);
       onSuccess("Record deleted");
-      await load(searchFilters);
+      await loadSelectors();
+      if (hasSearched) {
+        await loadPrices(searchFilters);
+      }
     } catch (err) {
       onError((err as Error).message);
     }
@@ -1980,7 +1991,7 @@ function SearchKeysPage({
         className='inline-form mobile-grid'
         onSubmit={(e) => {
           e.preventDefault();
-          void load(searchFilters);
+          void loadPrices(searchFilters);
         }}
       >
         <select
@@ -2068,7 +2079,8 @@ function SearchKeysPage({
               typeOfKey: "",
               typeOfIgnition: "",
             });
-            void load();
+            setPrices([]);
+            setHasSearched(false);
           }}
         >
           Reset
