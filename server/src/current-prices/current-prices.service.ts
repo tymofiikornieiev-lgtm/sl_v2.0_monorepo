@@ -83,75 +83,46 @@ export class CurrentPricesService {
   public async findFilterOptions() {
     try {
       const currentYear = new Date().getFullYear();
-      const rows = await this.currentPriceRepository.find({
-        relations: {
-          vehicleConfiguration: {
-            make: true,
-            model: true,
-            keyType: true,
-            ignitionType: true,
-          },
-        },
-      });
+      const rawRows = await this.currentPriceRepository
+        .createQueryBuilder('currentPrice')
+        .leftJoin('currentPrice.vehicleConfiguration', 'vehicleConfiguration')
+        .leftJoin('vehicleConfiguration.make', 'make')
+        .leftJoin('vehicleConfiguration.model', 'model')
+        .leftJoin('vehicleConfiguration.keyType', 'keyType')
+        .leftJoin('vehicleConfiguration.ignitionType', 'ignitionType')
+        .select('vehicleConfiguration.year', 'year')
+        .addSelect('make.name', 'make')
+        .addSelect('model.name', 'model')
+        .addSelect('keyType.name', 'typeOfKey')
+        .addSelect('ignitionType.name', 'typeOfIgnition')
+        .where('vehicleConfiguration.year <= :currentYear', { currentYear })
+        .andWhere('make.name IS NOT NULL')
+        .andWhere('model.name IS NOT NULL')
+        .andWhere('keyType.name IS NOT NULL')
+        .andWhere('ignitionType.name IS NOT NULL')
+        .distinct(true)
+        .orderBy('vehicleConfiguration.year', 'DESC')
+        .addOrderBy('make.name', 'ASC')
+        .addOrderBy('model.name', 'ASC')
+        .addOrderBy('keyType.name', 'ASC')
+        .addOrderBy('ignitionType.name', 'ASC')
+        .getRawMany<{
+          year: string | number;
+          make: string;
+          model: string;
+          typeOfKey: string;
+          typeOfIgnition: string;
+        }>();
 
-      const seen = new Set<string>();
-      const options: Array<{
-        year: number;
-        make: string;
-        model: string;
-        typeOfKey: string;
-        typeOfIgnition: string;
-      }> = [];
-
-      for (const row of rows) {
-        const vc = row.vehicleConfiguration;
-
-        if (
-          !vc?.make?.name ||
-          !vc?.model?.name ||
-          !vc?.keyType?.name ||
-          !vc?.ignitionType?.name
-        ) {
-          continue;
-        }
-
-        const year = Number(vc.year);
-        if (!Number.isFinite(year) || year > currentYear) {
-          continue;
-        }
-
-        const key = [
-          String(year),
-          vc.make.name,
-          vc.model.name,
-          vc.keyType.name,
-          vc.ignitionType.name,
-        ].join('|');
-
-        if (seen.has(key)) {
-          continue;
-        }
-
-        seen.add(key);
-        options.push({
-          year,
-          make: vc.make.name,
-          model: vc.model.name,
-          typeOfKey: vc.keyType.name,
-          typeOfIgnition: vc.ignitionType.name,
-        });
-      }
-
-      options.sort((a, b) => {
-        if (a.year !== b.year) return b.year - a.year;
-        if (a.make !== b.make) return a.make.localeCompare(b.make);
-        if (a.model !== b.model) return a.model.localeCompare(b.model);
-        if (a.typeOfKey !== b.typeOfKey)
-          return a.typeOfKey.localeCompare(b.typeOfKey);
-        return a.typeOfIgnition.localeCompare(b.typeOfIgnition);
-      });
-
-      return options;
+      return rawRows
+        .map((row) => ({
+          year: Number(row.year),
+          make: row.make,
+          model: row.model,
+          typeOfKey: row.typeOfKey,
+          typeOfIgnition: row.typeOfIgnition,
+        }))
+        .filter((row) => Number.isFinite(row.year));
     } catch (error) {
       this.logger.error('Failed to load filter options', error);
       throw new InternalServerErrorException('Failed to load filter options');
