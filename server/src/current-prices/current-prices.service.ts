@@ -83,76 +83,93 @@ export class CurrentPricesService {
   public async findFilterOptions() {
     try {
       const currentYear = new Date().getFullYear();
+      const rows = await this.currentPriceRepository.find({
+        relations: {
+          vehicleConfiguration: {
+            make: true,
+            model: true,
+            keyType: true,
+            ignitionType: true,
+          },
+        },
+      });
 
-      const rows = await this.currentPriceRepository.query(
-        `
-          SELECT DISTINCT
-            vc.year::int AS year,
-            mk.name AS make,
-            md.name AS model,
-            kt.name AS "typeOfKey",
-            it.name AS "typeOfIgnition"
-          FROM current_prices cp
-          JOIN vehicle_configurations vc
-            ON vc.id = cp.vehicle_configuration_id
-          JOIN makes mk
-            const currentYear = new Date().getFullYear();
-            const rows = await this.currentPriceRepository.find({
-              relations: {
-                vehicleConfiguration: {
-                  make: true,
-                  model: true,
-                  keyType: true,
-                  ignitionType: true,
-                },
-              },
-            });
+      const seen = new Set<string>();
+      const options: Array<{
+        year: number;
+        make: string;
+        model: string;
+        typeOfKey: string;
+        typeOfIgnition: string;
+      }> = [];
 
-            const seen = new Set<string>();
-            const options: Array<{
-              year: number;
-              make: string;
-              model: string;
-              typeOfKey: string;
-              typeOfIgnition: string;
-            }> = [];
+      for (const row of rows) {
+        const vc = row.vehicleConfiguration;
 
-            for (const row of rows) {
-              const vc = row.vehicleConfiguration;
+        if (
+          !vc?.make?.name ||
+          !vc?.model?.name ||
+          !vc?.keyType?.name ||
+          !vc?.ignitionType?.name
+        ) {
+          continue;
+        }
 
-              if (!vc?.make?.name || !vc?.model?.name || !vc?.keyType?.name || !vc?.ignitionType?.name) {
-                continue;
-              }
+        const year = Number(vc.year);
+        if (!Number.isFinite(year) || year > currentYear) {
+          continue;
+        }
 
-              const year = Number(vc.year);
-              if (!Number.isFinite(year) || year > currentYear) {
-                continue;
-              }
+        const key = [
+          String(year),
+          vc.make.name,
+          vc.model.name,
+          vc.keyType.name,
+          vc.ignitionType.name,
+        ].join('|');
 
-              const key = `${year}|${vc.make.name}|${vc.model.name}|${vc.keyType.name}|${vc.ignitionType.name}`;
-              if (seen.has(key)) {
-                continue;
-              }
+        if (seen.has(key)) {
+          continue;
+        }
 
-              seen.add(key);
-              options.push({
-                year,
-                make: vc.make.name,
-                model: vc.model.name,
-                typeOfKey: vc.keyType.name,
-                typeOfIgnition: vc.ignitionType.name,
-              });
-            }
+        seen.add(key);
+        options.push({
+          year,
+          make: vc.make.name,
+          model: vc.model.name,
+          typeOfKey: vc.keyType.name,
+          typeOfIgnition: vc.ignitionType.name,
+        });
+      }
 
-            options.sort((a, b) => {
-              if (a.year !== b.year) return b.year - a.year;
-              if (a.make !== b.make) return a.make.localeCompare(b.make);
-              if (a.model !== b.model) return a.model.localeCompare(b.model);
-              if (a.typeOfKey !== b.typeOfKey) return a.typeOfKey.localeCompare(b.typeOfKey);
-              return a.typeOfIgnition.localeCompare(b.typeOfIgnition);
-            });
+      options.sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        if (a.make !== b.make) return a.make.localeCompare(b.make);
+        if (a.model !== b.model) return a.model.localeCompare(b.model);
+        if (a.typeOfKey !== b.typeOfKey)
+          return a.typeOfKey.localeCompare(b.typeOfKey);
+        return a.typeOfIgnition.localeCompare(b.typeOfIgnition);
+      });
 
-            return options;
+      return options;
+    } catch (error) {
+      this.logger.error('Failed to load filter options', error);
+      throw new InternalServerErrorException('Failed to load filter options');
+    }
+  }
+
+  public async findOne(id: number) {
+    const currentPrice = await this.currentPriceRepository.findOne({
+      where: { id },
+      relations: {
+        vehicleConfiguration: {
+          make: true,
+          model: true,
+          ignitionType: true,
+          keyType: true,
+        },
+        dealer: true,
+        createdByUser: true,
         updatedByUser: true,
       },
     });
