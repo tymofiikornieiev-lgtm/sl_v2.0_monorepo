@@ -1496,9 +1496,9 @@ function SearchKeysPage({
         searchQuery.set("typeOfIgnition", filters.typeOfIgnition.trim());
       }
 
-      const hasFilters = Object.values(filters).some((value) =>
-        Boolean(value?.trim()),
-      );
+      // const hasFilters = Object.values(filters).some((value) =>
+      //   Boolean(value?.trim()),
+      // );
       const filteredPath = `/current-prices${searchQuery.toString() ? `?${searchQuery}` : ""}`;
       const pricesData = await http<CurrentPrice[]>(filteredPath);
 
