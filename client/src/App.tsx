@@ -76,7 +76,8 @@ type TabKey =
   | "prices";
 
 const API_BASE = import.meta.env.VITE_API_BASE?.trim();
-// import.meta.env.VITE_API_BASE?.trim() || "http://localhost:3003/api";
+// const API_BASE =
+//   import.meta.env.VITE_API_BASE?.trim() || "http://localhost:3003/api";
 
 console.log("API_BASE", API_BASE);
 const STORAGE_KEY = "sl-auth";
@@ -1370,6 +1371,15 @@ function SearchKeysPage({
   const [keyTypes, setKeyTypes] = useState<KeyType[]>([]);
   const [ignitionTypes, setIgnitionTypes] = useState<IgnitionType[]>([]);
   const [dealers, setDealers] = useState<Dealer[]>([]);
+  const [searchMatrix, setSearchMatrix] = useState<
+    Array<{
+      year: number;
+      make: string;
+      model: string;
+      typeOfKey: string;
+      typeOfIgnition: string;
+    }>
+  >([]);
   const [hasSearched, setHasSearched] = useState(false);
 
   type PriceForm = {
@@ -1442,6 +1452,7 @@ function SearchKeysPage({
   const loadSelectors = async () => {
     try {
       const [
+        searchMatrixData,
         vcData,
         makesData,
         modelsData,
@@ -1449,6 +1460,15 @@ function SearchKeysPage({
         ignitionData,
         dealersData,
       ] = await Promise.all([
+        http<
+          Array<{
+            year: number;
+            make: string;
+            model: string;
+            typeOfKey: string;
+            typeOfIgnition: string;
+          }>
+        >("/current-prices/filter-options"),
         http<VehicleConfiguration[]>("/vehicle-configurations"),
         http<Make[]>("/makes"),
         http<Model[]>("/models"),
@@ -1457,6 +1477,7 @@ function SearchKeysPage({
         http<Dealer[]>("/dealers"),
       ]);
 
+      setSearchMatrix(searchMatrixData);
       setVehicleConfigurations(vcData);
       setMakes(makesData);
       setModels(modelsData);
@@ -1515,11 +1536,20 @@ function SearchKeysPage({
 
   const selectorVehicleConfigurations = useMemo(
     () =>
-      vehicleConfigurations.filter(
-        (vc): vc is NonNullable<CurrentPrice["vehicleConfiguration"]> =>
-          Boolean(vc),
-      ),
-    [vehicleConfigurations],
+      searchMatrix.map((item, index) => ({
+        id: -index - 1,
+        year: item.year,
+        makeId: 0,
+        modelId: 0,
+        ignitionTypeId: 0,
+        keyTypeId: 0,
+        buttonsCount: 0,
+        make: { id: 0, name: item.make },
+        model: { id: 0, name: item.model, makeId: 0 },
+        keyType: { id: 0, name: item.typeOfKey },
+        ignitionType: { id: 0, name: item.typeOfIgnition },
+      })),
+    [searchMatrix],
   );
 
   const availableYears = useMemo(() => {

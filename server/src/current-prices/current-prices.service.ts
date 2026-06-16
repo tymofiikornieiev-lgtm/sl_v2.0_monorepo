@@ -73,6 +73,41 @@ export class CurrentPricesService {
     return await query.getMany();
   }
 
+  public async findFilterOptions() {
+    const currentYear = new Date().getFullYear();
+
+    const rows = await this.currentPriceRepository
+      .createQueryBuilder('currentPrice')
+      .innerJoin('currentPrice.vehicleConfiguration', 'vehicleConfiguration')
+      .innerJoin('vehicleConfiguration.make', 'make')
+      .innerJoin('vehicleConfiguration.model', 'model')
+      .innerJoin('vehicleConfiguration.ignitionType', 'ignitionType')
+      .innerJoin('vehicleConfiguration.keyType', 'keyType')
+      .select('DISTINCT vehicleConfiguration.year', 'year')
+      .addSelect('make.name', 'make')
+      .addSelect('model.name', 'model')
+      .addSelect('keyType.name', 'typeOfKey')
+      .addSelect('ignitionType.name', 'typeOfIgnition')
+      .where('vehicleConfiguration.year <= :currentYear', { currentYear })
+      .orderBy('vehicleConfiguration.year', 'DESC')
+      .addOrderBy('make.name', 'ASC')
+      .addOrderBy('model.name', 'ASC')
+      .addOrderBy('keyType.name', 'ASC')
+      .addOrderBy('ignitionType.name', 'ASC')
+      .getRawMany<{
+        year: string;
+        make: string;
+        model: string;
+        typeOfKey: string;
+        typeOfIgnition: string;
+      }>();
+
+    return rows.map((row) => ({
+      ...row,
+      year: Number(row.year),
+    }));
+  }
+
   public async findOne(id: number) {
     const currentPrice = await this.currentPriceRepository.findOne({
       where: { id },

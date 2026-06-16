@@ -26,6 +26,12 @@ export class CurrentPricesController {
     return await this.currentPricesService.findAll(query);
   }
 
+  @Get('filter-options')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.VIEWER)
+  public async findFilterOptions() {
+    return await this.currentPricesService.findFilterOptions();
+  }
+
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.VIEWER)
   public async findOne(@Param('id', ParseIntPipe) id: number) {
